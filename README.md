@@ -10,7 +10,7 @@
   <li>Passwords are securely encoded with hashing and salting functions of the werkzeug.security package.</li>
   <li>User authentication is done with a flask_login object.</li>
   <li>Only Admin users can create and delete posts.</li>
-  <li>Users can get in contact with the the owner(me) by sending a message, which gets transferred via email over a SMTP client session object.</li>
+  <li>Users can get in contact with me by sending a message, which gets transferred via email over a SMTP client session object.</li>
 </ul>
 <h2>Topics covered</h2>
 <ul>
