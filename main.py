@@ -10,6 +10,7 @@ from flask_login import UserMixin, login_user, LoginManager, login_required, cur
 from forms import LoginForm, RegisterForm, CreatePostForm, CommentForm
 from flask_gravatar import Gravatar
 import os
+import smtplib
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.environ.get("SECRET_KEY")
@@ -30,7 +31,7 @@ def load_user(user_id):
     return User.query.get(int(user_id))
 
 
-##CONFIGURE TABLE
+##CONFIGURE TABLES
 class User(UserMixin, db.Model):
     __tablename__ = "users"
     id = db.Column(db.Integer, primary_key=True)
@@ -74,12 +75,14 @@ def admin_only(f):
     return decorated_function
 
 
+##HOME ROUTE WHICH SHOWS EVERY POST
 @app.route('/')
 def get_all_posts():
     posts = BlogPost.query.all()
     return render_template("index.html", all_posts=posts, current_user=current_user)
 
 
+##REGISTER NEW USERS
 @app.route('/register', methods=["GET", "POST"])
 def register():
     form = RegisterForm()
@@ -109,6 +112,7 @@ def register():
     return render_template("register.html", form=form, current_user=current_user)
 
 
+##ROUTE TO LOG USER IN
 @app.route('/login', methods=["GET", "POST"])
 def login():
     form = LoginForm()
@@ -130,12 +134,14 @@ def login():
     return render_template("login.html", form=form, current_user=current_user)
 
 
+##ROUTE TO LOG USER OUT
 @app.route('/logout')
 def logout():
     logout_user()
     return redirect(url_for('get_all_posts'))
 
 
+##SHOW SELECTED POST
 @app.route("/post/<int:post_id>", methods=["GET", "POST"])
 def show_post(post_id):
     form = CommentForm()
@@ -159,16 +165,37 @@ def show_post(post_id):
     return render_template("post.html", post=requested_post, form=form, current_user=current_user)
 
 
+##ABOUT ME ROUTE
 @app.route("/about")
 def about():
     return render_template("about.html", current_user=current_user)
 
 
-@app.route("/contact")
+##CONTACT ME
+@app.route("/contact", methods=["GET", "POST"])
 def contact():
-    return render_template("contact.html", current_user=current_user)
+    if request.method == "POST":
+        data = request.form
+        send_email(data['name'], data['email'], data['phone'], data['message'])
+        return render_template('contact.html', msg_sent=True)
+    return render_template("contact.html", current_user=current_user, msg_sent=False)
 
 
+##FUNCTION TO SEND EMAILS TO OWNER
+def send_email(name, email, phone, message):
+    email_message = f"Subject:New Blog Message\n\nName: {name}\nEmail: {email}\nPhone: {phone}\nMessage: {message}"
+    OWN_EMAIL = os.environ.get("EMAIL_ADDRESS")
+    OWN_PASSWORD = os.environ.get("EMAIL_PASSWORD")
+    RECIPIENT_EMAIL = os.environ.get("RECIPIENT_EMAIL")
+    SMTP_HOST = os.environ.get("SMTP_HOST")
+    SMTP_PORT = int(os.environ.get("SMTP_PORT"))
+    with smtplib.SMTP(host=SMTP_HOST, port=SMTP_PORT) as connection:
+        connection.starttls()
+        connection.login(OWN_EMAIL, OWN_PASSWORD)
+        connection.sendmail(from_addr=OWN_EMAIL, to_addrs=RECIPIENT_EMAIL, msg=email_message)
+
+
+##CREATE NEW POSTS
 @app.route("/new-post", methods=["GET", "POST"])
 @admin_only
 def add_new_post():
@@ -189,6 +216,7 @@ def add_new_post():
     return render_template("make-post.html", form=form, current_user=current_user)
 
 
+##EDIT POSTS
 @app.route("/edit-post/<int:post_id>", methods=["GET", "POST"])
 @admin_only
 def edit_post(post_id):
@@ -211,6 +239,7 @@ def edit_post(post_id):
     return render_template("make-post.html", form=edit_form, is_edit=True, current_user=current_user)
 
 
+##DELETE POSTS
 @app.route("/delete/<int:post_id>")
 @admin_only
 def delete_post(post_id):
@@ -218,6 +247,12 @@ def delete_post(post_id):
     db.session.delete(post_to_delete)
     db.session.commit()
     return redirect(url_for('get_all_posts'))
+
+
+##ADD CURRENT YEAR INTO THE FOOTER TEMPLATE
+@app.context_processor
+def inject_date():
+    return {'year': date.today().strftime("%Y") }
 
 
 if __name__ == "__main__":
