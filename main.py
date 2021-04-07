@@ -183,7 +183,7 @@ def contact():
 
 ##FUNCTION TO SEND EMAILS TO OWNER
 def send_email(name, email, phone, message):
-    email_message = f"Subject:New Blog Message\n\nName: {name}\nEmail: {email}\nPhone: {phone}\nMessage: {message}"
+    email_message = f"Subject:New Blog Message\n\nName: {name}\nEmail: {email}\nPhone: {phone}\nMessage: {message}".encode("utf-8")
     OWN_EMAIL = os.environ.get("EMAIL_ADDRESS")
     OWN_PASSWORD = os.environ.get("EMAIL_PASSWORD")
     RECIPIENT_EMAIL = os.environ.get("RECIPIENT_EMAIL")
